@@ -1,0 +1,587 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Organization / Tenant
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  description String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  posts       Post[]
+  products    Product[]
+  pages       Page[]
+  media       Media[]
+  mediaFolders MediaFolder[]
+  menus       Menu[]
+  inquiries   Inquiry[]
+  settings    Setting[]
+  categories  Category[]
+  tags        Tag[]
+  productCategories ProductCategory[]
+  invitations OrganizationInvitation[]
+  memberships OrganizationMembership[]
+  revisions   Revision[]
+
+  @@map("organizations")
+}
+
+// Organization Membership (for users with multiple orgs)
+model OrganizationMembership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(USER)
+  isDefault      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("organization_memberships")
+}
+
+// Organization Invitation
+model OrganizationInvitation {
+  id             String       @id @default(cuid())
+  email          String
+  organizationId String
+  role           Role         @default(USER)
+  token          String       @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([email, organizationId])
+  @@map("organization_invitations")
+}
+
+// User Management
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  bio           String?
+  
+  // Koompi OAuth Fields
+  username      String?
+  firstName     String?
+  lastName      String?
+  telegramId    Int?
+  walletAddress String?
+  
+  // Multi-tenancy (current/default organization)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  media         Media[]
+  memberships   OrganizationMembership[]
+  revisions     Revision[]
+
+  @@map("users")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Content Management
+model Post {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String
+  content       Json          // Rich text content
+  excerpt       String?
+  status        PostStatus    @default(DRAFT)
+  type          PostType      @default(POST)
+  featuredImage String?
+  seo           Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  publishedAt   DateTime?
+  scheduledAt   DateTime?     // For scheduled publishing
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Relations
+  author        User          @relation(fields: [authorId], references: [id])
+  authorId      String
+  categories    PostCategory[]
+  tags          PostTag[]
+  media         Media[]
+
+  @@unique([slug, organizationId])
+  @@map("posts")
+}
+
+model Category {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  parent      Category?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parentId    String?
+  children    Category[]  @relation("CategoryHierarchy")
+  posts       PostCategory[]
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([slug, organizationId])
+  @@map("categories")
+}
+
+model Tag {
+  id    String      @id @default(cuid())
+  name  String
+  slug  String
+  posts PostTag[]
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([slug, organizationId])
+  @@map("tags")
+}
+
+// Product Management
+model Product {
+  id                String            @id @default(cuid())
+  name              String
+  slug              String
+  description       Json
+  shortDescription  String?
+  price             Float
+  compareAtPrice    Float?
+  sku               String
+  trackInventory    Boolean           @default(true)
+  inventory         Int               @default(0)
+  status            ProductStatus     @default(ACTIVE)
+  featured          Boolean           @default(false)
+  featuredImage     String?
+  gallery           Json              // Array of image URLs
+  specifications    Json              // Product specs
+  options           Json              // Variations like color, size
+  seo               Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  scheduledAt       DateTime?         // For scheduled activation
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Relations
+  categories        CategoryProduct[]
+  reviews           Review[]
+  testimonials      Testimonial[]
+  media             Media[]
+
+  @@unique([slug, organizationId])
+  @@unique([sku, organizationId])
+  @@map("products")
+}
+
+model ProductCategory {
+  id          String            @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  image       String?
+  products    CategoryProduct[]
+  parent      ProductCategory?  @relation("ProductCategoryHierarchy", fields: [parentId], references: [id])
+  parentId    String?
+  children    ProductCategory[] @relation("ProductCategoryHierarchy")
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([slug, organizationId])
+  @@map("product_categories")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  rating    Int
+  title     String?
+  content   String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  @@map("reviews")
+}
+
+// Page Management
+model Page {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String
+  content     Json       // Rich text content
+  status      PageStatus @default(DRAFT)
+  template    String     @default("default") // homepage, about, contact, etc.
+  seo         Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  publishedAt DateTime?
+  scheduledAt DateTime?  // For scheduled publishing
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([slug, organizationId])
+  @@map("pages")
+}
+
+// Media Folder Management
+model MediaFolder {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Nested folders (self-referential)
+  parentId    String?
+  parent      MediaFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    MediaFolder[] @relation("FolderHierarchy")
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Relations
+  media       Media[]
+
+  @@unique([slug, parentId, organizationId])
+  @@map("media_folders")
+}
+
+// Media Management
+model Media {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String?
+  alt         String?
+  caption     String?
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  url         String   @unique
+  thumbnailUrl String?
+  blurDataUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  // Folder organization
+  folderId    String?
+  folder      MediaFolder? @relation(fields: [folderId], references: [id])
+
+  // Multi-tenancy
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // Relations
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  uploadedById String?
+  posts        Post[]
+  products     Product[]
+
+  // Usage tracking - stored as JSON array of references
+  // Format: [{ type: "post"|"page"|"product", id: string, field: string }]
+  usageRefs    Json?
+
+  @@index([organizationId, folderId])
+  @@index([mimeType])
+  @@map("media")
+}
+
+// Testimonials
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  company   String?
+  position  String?
+  content   String
+  rating    Int
+  avatar    String?
+  featured  Boolean  @default(false)
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@map("testimonials")
+}
+
+// Site Settings
+model Setting {
+  id        String   @id @default(cuid())
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([key, organizationId])
+  @@map("settings")
+}
+
+// Navigation Menus
+model Menu {
+  id        String     @id @default(cuid())
+  name      String
+  location  String     // header, footer, sidebar
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@map("menus")
+}
+
+model MenuItem {
+  id        String     @id @default(cuid())
+  label     String
+  url       String
+  target    String     @default("_self") // _self, _blank
+  order     Int        @default(0)
+  menuId    String
+  menu      Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    MenuItem?  @relation("MenuItemHierarchy", fields: [parentId], references: [id])
+  children  MenuItem[] @relation("MenuItemHierarchy")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("menu_items")
+}
+
+// Contact Inquiries
+model Inquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    InquiryStatus @default(NEW)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("inquiries")
+}
+
+// Junction Tables
+model PostCategory {
+  postId     String
+  categoryId String
+
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("post_categories")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model CategoryProduct {
+  productId     String
+  categoryId String
+
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@map("category_product_junction")
+}
+
+// =====================
+// RBAC (Role-Based Access Control)
+// =====================
+
+// Permission defines a specific action on a resource
+model Permission {
+  id          String   @id @default(cuid())
+  resource    String   // e.g., "posts", "pages", "products", "users", "settings"
+  action      String   // e.g., "view", "create", "edit", "delete", "publish"
+  description String?
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+// RolePermission links roles to permissions
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         Role
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime   @default(now())
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
+}
+
+// Enums
+enum Role {
+  SUPER_ADMIN  // Full access, can manage other admins
+  ADMIN        // Full access within organization
+  EDITOR       // Can edit and publish content
+  AUTHOR       // Can create and edit own content
+  USER         // Read-only / basic access
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum PostType {
+  POST
+  PAGE
+  PRODUCT
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  SCHEDULED
+  ARCHIVED
+  OUT_OF_STOCK
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum InquiryStatus {
+  NEW
+  READ
+  REPLIED
+  CLOSED
+}
+
+// Revision History for Content Versioning
+model Revision {
+  id          String   @id @default(cuid())
+  contentType String   // 'post', 'page', 'product'
+  contentId   String   // ID of the content being versioned
+  version     Int      // Version number
+  title       String
+  content     String?  // JSON or HTML content
+  metadata    Json?    // Additional data (excerpt, SEO, etc.)
+  createdAt   DateTime @default(now())
+  
+  // Who made this revision
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id])
+  
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  @@unique([contentType, contentId, version])
+  @@index([contentType, contentId])
+  @@index([organizationId])
+  @@map("revisions")
+}
