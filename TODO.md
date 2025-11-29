@@ -1,6 +1,6 @@
-# Grood CMS Roadmap
+# Nimmit CMS Roadmap
 
-This document tracks upcoming features and improvements for Grood CMS V2 and beyond.
+This document tracks upcoming features and improvements for Nimmit CMS V2 and beyond.
 
 ## V2 Roadmap
 

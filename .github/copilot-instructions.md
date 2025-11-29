@@ -1,4 +1,4 @@
-# Grood CMS - AI Coding Instructions
+# Nimmit CMS - AI Coding Instructions
 
 > **Version 1.0** - Production-ready multi-tenant CMS
 

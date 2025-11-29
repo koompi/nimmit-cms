@@ -1,4 +1,4 @@
-# SmallWorld CMS
+# Nimmit CMS
 
 > An experimental multi-tenant CMS built by KOOMPI as part of the SmallWorld initiative.
 
