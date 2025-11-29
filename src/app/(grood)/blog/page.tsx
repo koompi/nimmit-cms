@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, Clock, ArrowRight, ChevronRight } from "lucide-react";
+import { generateSEO } from "@/lib/seo";
+
+export const metadata = generateSEO({
+  title: "Blog",
+  description: "Stories, tips, and insights from the world of Grood e-bikes. Discover the latest in urban mobility, cycling culture, and sustainable living.",
+  keywords: ["grood blog", "e-bike news", "cycling tips", "urban mobility", "sustainable transport"],
+});
 
 const categories = [
   { name: "All", slug: "all" },

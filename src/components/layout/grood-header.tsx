@@ -4,7 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { ShoppingBag, X, Menu, ChevronRight, MapPin, Phone, Mail } from "lucide-react";
+import { ShoppingBag, X, Menu, ChevronRight, MapPin, Phone, Mail, Search } from "lucide-react";
+import { SearchModal } from "@/components/search/SearchModal";
 
 // Product data for the menu
 const products = [
@@ -51,8 +52,21 @@ function isLightColor(r: number, g: number, b: number): boolean {
 
 export function GroodHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true); // true = light text on dark bg
+
+  // Handle keyboard shortcut (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Detect background color at header position
   const detectBackgroundColor = useCallback(() => {
@@ -196,23 +210,44 @@ export function GroodHeader() {
             </span>
           </Link>
 
-          <Link
-            href="/cart"
-            className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-xl backdrop-blur-md transition-all duration-300",
-              isDarkMode 
-                ? "bg-white/10 hover:bg-white/20" 
-                : "bg-black/10 hover:bg-black/20"
-            )}
-            aria-label="Shopping cart"
-          >
-            <ShoppingBag className={cn(
-              "w-5 h-5 transition-colors duration-300",
-              isDarkMode ? "text-white" : "text-black"
-            )} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className={cn(
+                "w-12 h-12 flex items-center justify-center rounded-xl backdrop-blur-md transition-all duration-300",
+                isDarkMode 
+                  ? "bg-white/10 hover:bg-white/20" 
+                  : "bg-black/10 hover:bg-black/20"
+              )}
+              aria-label="Search"
+            >
+              <Search className={cn(
+                "w-5 h-5 transition-colors duration-300",
+                isDarkMode ? "text-white" : "text-black"
+              )} />
+            </button>
+
+            <Link
+              href="/cart"
+              className={cn(
+                "w-12 h-12 flex items-center justify-center rounded-xl backdrop-blur-md transition-all duration-300",
+                isDarkMode 
+                  ? "bg-white/10 hover:bg-white/20" 
+                  : "bg-black/10 hover:bg-black/20"
+              )}
+              aria-label="Shopping cart"
+            >
+              <ShoppingBag className={cn(
+                "w-5 h-5 transition-colors duration-300",
+                isDarkMode ? "text-white" : "text-black"
+              )} />
+            </Link>
+          </div>
         </div>
       </header>
+
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
       <div
         className={cn(

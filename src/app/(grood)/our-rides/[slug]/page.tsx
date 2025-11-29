@@ -3,6 +3,9 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowRight, Zap, Shield, Smartphone, Battery, Gauge, Scale, Settings, Timer, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { Metadata } from "next";
+import { generateProductJsonLd, generateBreadcrumbJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 interface EBikeSpecs {
   range?: string;
@@ -48,6 +51,32 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const bike = await getEBike(slug);
+  
+  if (!bike) {
+    return { title: "E-Bike Not Found | Grood" };
+  }
+
+  return {
+    title: `${bike.name} | Grood E-Bikes`,
+    description: bike.tagline || `Discover the ${bike.name} - Premium electric bike by Grood`,
+    openGraph: {
+      title: `${bike.name} | Grood E-Bikes`,
+      description: bike.tagline || `Discover the ${bike.name}`,
+      images: bike.heroImage ? [{ url: bike.heroImage, width: 1200, height: 630 }] : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${bike.name} | Grood`,
+      description: bike.tagline || `Discover the ${bike.name}`,
+      images: bike.heroImage ? [bike.heroImage] : [],
+    },
+  };
+}
+
 export default async function BikePage({ params }: PageProps) {
   const { slug } = await params;
   const bike = await getEBike(slug);
@@ -60,6 +89,25 @@ export default async function BikePage({ params }: PageProps) {
   const specs = (bike.specs as unknown as EBikeSpecs) || {};
   const colors = (bike.colors as unknown as EBikeColor[]) || [];
   const features = (bike.features as unknown as EBikeFeature[]) || [];
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://grood.com";
+  const productJsonLd = generateProductJsonLd({
+    name: bike.name,
+    description: bike.tagline || `${bike.name} electric bike by Grood`,
+    image: bike.heroImage || "",
+    price: bike.price,
+    currency: "USD",
+    sku: bike.slug,
+    brand: "Grood",
+    availability: "InStock",
+    url: `${siteUrl}/our-rides/${bike.slug}`,
+  });
+
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+    { name: "Home", url: siteUrl },
+    { name: "Our Rides", url: `${siteUrl}/our-rides` },
+    { name: bike.name, url: `${siteUrl}/our-rides/${bike.slug}` },
+  ]);
 
   const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     zap: Zap,
@@ -75,6 +123,8 @@ export default async function BikePage({ params }: PageProps) {
 
   return (
     <main>
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center" data-header-theme="dark">
         <div className="absolute inset-0">

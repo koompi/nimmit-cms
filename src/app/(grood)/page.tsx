@@ -2,6 +2,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Zap, Shield, Smartphone, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { generateSEO, generateOrganizationJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+export const metadata = generateSEO({
+  title: "Grood",
+  description: "Premium electric bikes designed for modern urban mobility. Discover the future of city commuting with Grood e-bikes featuring cutting-edge technology and sleek design.",
+  keywords: ["electric bikes", "e-bikes", "urban mobility", "grood", "commuter bikes", "sustainable transport"],
+  type: "website",
+});
 
 interface EBikeSpecs {
   range?: string;
@@ -58,6 +67,7 @@ export default async function HomePage() {
   const pressQuotes = await getTestimonials();
   return (
     <main className="flex flex-col">
+      <JsonLd data={generateOrganizationJsonLd()} />
       {/* Hero Section - Full Screen */}
       <section data-header-theme="dark" className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background */}

@@ -2,6 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { generateSEO } from "@/lib/seo";
+
+export const metadata = generateSEO({
+  title: "Our Rides",
+  description: "Explore our collection of premium electric bikes. From city commuters to adventure seekers, find the perfect Grood e-bike for your lifestyle.",
+  keywords: ["grood e-bikes", "electric bikes", "city bikes", "commuter bikes", "premium e-bikes"],
+});
 
 interface EBikeSpecs {
   range?: string;

@@ -2,6 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { ShoppingBag, Star, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { generateSEO } from "@/lib/seo";
+
+export const metadata = generateSEO({
+  title: "Accessories",
+  description: "Premium e-bike accessories designed to enhance your Grood experience. From safety gear to tech add-ons, find everything you need for the perfect ride.",
+  keywords: ["e-bike accessories", "bike gear", "grood accessories", "bike safety", "bike tech"],
+});
 
 const categories = [
   { name: "All", slug: "all" },

@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { generateSEO } from "@/lib/seo";
+
+export const metadata = generateSEO({
+  title: "Our Story",
+  description: "Born in Phnom Penh, Grood is on a mission to make urban mobility sustainable, stylish, and accessible for everyone.",
+  keywords: ["grood story", "about grood", "grood history", "cambodia e-bikes", "sustainable mobility"],
+});
 
 const timeline = [
   {
